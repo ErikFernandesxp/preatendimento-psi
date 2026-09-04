@@ -1,3 +1,5 @@
+// Caminho no projeto: src/components/activities/ActivityResponseForm.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -6,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Upload, Paperclip, CheckCircle2 } from "lucide-react";
 import { FileLink } from "@/components/shared/FileLink";
+import { buildStorageObjectPath, describeStorageError } from "@/lib/utils/storage";
 import type { ActivityResponseType } from "@/types/database.types";
 
 interface ExistingFile {
@@ -115,24 +118,29 @@ export function ActivityResponseForm({
       return;
     }
 
+    const fileErrors: string[] = [];
+
     for (const file of Array.from(selected)) {
       if (allowedFileTypes && allowedFileTypes.length > 0 && !allowedFileTypes.includes(file.type)) {
-        setError(`Tipo de arquivo não permitido: ${file.name}`);
+        fileErrors.push(`Tipo de arquivo não permitido: ${file.name}`);
         continue;
       }
       if (file.size > sizeLimitMb * 1024 * 1024) {
-        setError(`Arquivo muito grande (máx. ${sizeLimitMb}MB): ${file.name}`);
+        fileErrors.push(`Arquivo muito grande (máx. ${sizeLimitMb}MB): ${file.name}`);
         continue;
       }
 
-      const path = `patient/${patientId}/activities/${patientActivityId}/${Date.now()}-${file.name}`;
+      const path = buildStorageObjectPath(
+        `patient/${patientId}/activities/${patientActivityId}`,
+        file.name
+      );
 
       const { error: uploadError } = await supabase.storage
         .from("patient-files")
         .upload(path, file);
 
       if (uploadError) {
-        setError(`Erro ao enviar ${file.name}.`);
+        fileErrors.push(describeStorageError(file.name, uploadError));
         continue;
       }
 
@@ -148,11 +156,18 @@ export function ActivityResponseForm({
         .select()
         .single();
 
-      if (!fileRowError && fileRow) {
-        setFiles((prev) => [...prev, fileRow]);
+      if (fileRowError || !fileRow) {
+        // Evita deixar um arquivo "órfão" no Storage se o registro no
+        // banco falhar.
+        await supabase.storage.from("patient-files").remove([path]);
+        fileErrors.push(`Não foi possível registrar "${file.name}" depois do envio. Tente novamente.`);
+        continue;
       }
+
+      setFiles((prev) => [...prev, fileRow]);
     }
 
+    if (fileErrors.length > 0) setError(fileErrors.join(" "));
     setUploading(false);
     e.target.value = "";
   }

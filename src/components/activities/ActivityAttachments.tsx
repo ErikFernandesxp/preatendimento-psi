@@ -1,9 +1,12 @@
+// Caminho no projeto: src/components/activities/ActivityAttachments.tsx
+
 "use client";
 
 import { useState } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { FileLink } from "@/components/shared/FileLink";
+import { buildStorageObjectPath, describeStorageError } from "@/lib/utils/storage";
 
 export interface ActivityAttachment {
   id: string;
@@ -47,33 +50,34 @@ export function ActivityAttachments({
   const supabase = createClient();
   const [attachments, setAttachments] = useState<ActivityAttachment[]>(initialAttachments);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files;
     if (!selected || selected.length === 0) return;
 
-    setError(null);
+    setErrors([]);
     setUploading(true);
+    const fileErrors: string[] = [];
 
     for (const file of Array.from(selected)) {
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        setError(`Tipo de arquivo não permitido: ${file.name}`);
+        fileErrors.push(`Tipo de arquivo não permitido: ${file.name}`);
         continue;
       }
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setError(`Arquivo muito grande (máx. ${MAX_SIZE_MB}MB): ${file.name}`);
+        fileErrors.push(`Arquivo muito grande (máx. ${MAX_SIZE_MB}MB): ${file.name}`);
         continue;
       }
 
-      const path = `activity/${activityId}/${Date.now()}-${file.name}`;
+      const path = buildStorageObjectPath(`activity/${activityId}`, file.name);
 
       const { error: uploadError } = await supabase.storage
         .from("activity-materials")
         .upload(path, file);
 
       if (uploadError) {
-        setError(`Erro ao enviar ${file.name}.`);
+        fileErrors.push(describeStorageError(file.name, uploadError));
         continue;
       }
 
@@ -89,11 +93,18 @@ export function ActivityAttachments({
         .select()
         .single();
 
-      if (!rowError && row) {
-        setAttachments((prev) => [...prev, row]);
+      if (rowError || !row) {
+        // Evita deixar um arquivo "órfão" no Storage se o registro no
+        // banco falhar (ex.: RLS, atividade removida nesse meio-tempo).
+        await supabase.storage.from("activity-materials").remove([path]);
+        fileErrors.push(`Não foi possível registrar "${file.name}" depois do envio. Tente novamente.`);
+        continue;
       }
+
+      setAttachments((prev) => [...prev, row]);
     }
 
+    if (fileErrors.length > 0) setErrors(fileErrors);
     setUploading(false);
     e.target.value = "";
   }
@@ -143,7 +154,15 @@ export function ActivityAttachments({
         <p className="mt-1 text-xs text-slate-400">Até {MAX_SIZE_MB}MB por arquivo.</p>
       )}
 
-      {error && <p className="mt-1 text-sm text-rose-600">{error}</p>}
+      {errors.length > 0 && (
+        <ul className="mt-1 space-y-0.5">
+          {errors.map((msg, i) => (
+            <li key={i} className="text-sm text-rose-600">
+              {msg}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
