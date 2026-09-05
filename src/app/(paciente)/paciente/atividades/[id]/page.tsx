@@ -36,6 +36,7 @@ export default async function PacienteAtividadeDetalhePage({
   }
 
   const activity = patientActivity.activities as any;
+  if (!activity) notFound();
   const response = (patientActivity.responses as any)?.[0] ?? null;
 
   return (

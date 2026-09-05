@@ -81,7 +81,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-4 flex justify-between text-sm">
+        <div className="mt-4 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
           <Link href="/esqueci-senha" className="text-slate-500 hover:underline">
             Esqueci minha senha
           </Link>
