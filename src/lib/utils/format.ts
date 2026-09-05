@@ -42,3 +42,13 @@ export const patientStatusLabel: Record<string, string> = {
   active: "Ativo",
   inactive: "Inativo",
 };
+
+/**
+ * Formata o "value" salvo em responses.structured_response (Sim/Não,
+ * nota de escala, ou opção(ões) escolhida(s)) para exibição simples.
+ */
+export function formatStructuredValue(value: unknown): string {
+  if (Array.isArray(value)) return value.join(", ");
+  if (value === null || value === undefined || value === "") return "";
+  return String(value);
+}

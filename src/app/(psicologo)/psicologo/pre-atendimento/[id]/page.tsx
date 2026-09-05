@@ -1,11 +1,14 @@
+// Caminho no projeto: src/app/(psicologo)/psicologo/pre-atendimento/[id]/page.tsx
+
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { formatDateTime } from "@/lib/utils/format";
+import { formatDateTime, formatStructuredValue } from "@/lib/utils/format";
 import { ConsultationPoints } from "@/components/pre-atendimento/ConsultationPoints";
 import { ResponseFlagPicker } from "@/components/pre-atendimento/ResponseFlagPicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { patientActivityStatusLabel } from "@/lib/utils/format";
 import { Badge, statusTone } from "@/components/ui/Badge";
+import { FileLink } from "@/components/shared/FileLink";
 
 export default async function PreAtendimentoDetalhePage({
   params,
@@ -29,8 +32,9 @@ export default async function PreAtendimentoDetalhePage({
       .select(
         `id, status, sent_at,
          activities ( title ),
-         responses ( id, text_response, submitted_at,
-           response_flags ( flag ) )`
+         responses ( id, text_response, structured_response, is_draft, submitted_at,
+           response_flags ( flag ),
+           response_files ( id, file_name, file_path, file_type ) )`
       )
       .eq("patient_id", id)
       .order("sent_at", { ascending: false })
@@ -43,7 +47,22 @@ export default async function PreAtendimentoDetalhePage({
   ]);
 
   const rows = (activities ?? []) as any[];
-  const withResponses = rows.filter((r) => r.responses?.[0]?.submitted_at);
+
+  // Antes, isso só considerava a resposta se `submitted_at` estivesse
+  // preenchido — então texto, resposta objetiva (structured_response) e
+  // arquivos anexados de uma resposta ainda em rascunho (ou que não
+  // completou o fluxo de "Confirmar envio") nunca apareciam aqui, mesmo
+  // o paciente já tendo escrito ou anexado algo. Agora mostramos
+  // qualquer resposta que já tenha algum conteúdo, e sinalizamos com o
+  // badge "Rascunho" quando ainda não foi formalmente enviada.
+  const withResponses = rows.filter((r) => {
+    const resp = r.responses?.[0];
+    if (!resp) return false;
+    const hasText = !!resp.text_response;
+    const structuredText = formatStructuredValue(resp.structured_response?.value);
+    const hasFiles = (resp.response_files?.length ?? 0) > 0;
+    return hasText || !!structuredText || hasFiles;
+  });
 
   return (
     <div className="space-y-6">
@@ -82,19 +101,46 @@ export default async function PreAtendimentoDetalhePage({
               <div className="space-y-3">
                 {withResponses.map((r) => {
                   const response = r.responses[0];
+                  const structuredText = formatStructuredValue(response.structured_response?.value);
+                  const files = response.response_files ?? [];
+
                   return (
                     <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-slate-900">{r.activities?.title}</p>
-                        <p className="text-xs text-slate-400">
-                          {formatDateTime(response.submitted_at)}
-                        </p>
+                        {response.submitted_at ? (
+                          <p className="text-xs text-slate-400">
+                            {formatDateTime(response.submitted_at)}
+                          </p>
+                        ) : (
+                          <Badge tone="warning">Rascunho</Badge>
+                        )}
                       </div>
+
+                      {structuredText && (
+                        <p className="mt-2 text-sm font-medium text-slate-800">{structuredText}</p>
+                      )}
+
                       {response.text_response && (
                         <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
                           {response.text_response}
                         </p>
                       )}
+
+                      {files.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          {files.map((f: any) => (
+                            <FileLink
+                              key={f.id}
+                              bucket="patient-files"
+                              path={f.file_path}
+                              name={f.file_name}
+                              type={f.file_type}
+                            />
+                          ))}
+                        </div>
+                      )}
+
                       <div className="mt-3">
                         <ResponseFlagPicker
                           responseId={response.id}
