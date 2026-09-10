@@ -1,3 +1,5 @@
+// Caminho no projeto: src/app/(psicologo)/psicologo/pacientes/[id]/page.tsx
+
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { Badge, statusTone } from "@/components/ui/Badge";
@@ -32,12 +34,7 @@ export default async function PacienteDetalhePage({
   const [{ data: patientActivities }, { data: notes }] = await Promise.all([
     supabase
       .from("patient_activities")
-      .select(
-        `id, status, sent_at, due_date, completed_at,
-         activities ( title, response_type ),
-         responses ( id, text_response, submitted_at, is_draft,
-           response_files ( id, file_name, file_type, file_path, created_at ) )`
-      )
+      .select(`id, status, sent_at, due_date, completed_at, activities ( title, response_type )`)
       .eq("patient_id", id)
       .order("sent_at", { ascending: false }),
     supabase
@@ -48,9 +45,37 @@ export default async function PacienteDetalhePage({
   ]);
 
   const activities = (patientActivities ?? []) as any[];
+
+  // As respostas são buscadas numa consulta separada (em vez de um
+  // embed `patient_activities -> responses`). O Postgrest, ao montar
+  // esse embed em específico, aplica a RLS de `responses` dentro de
+  // uma subconsulta correlacionada que reavalia a RLS de
+  // `patient_activities` — o que fazia a linha sumir do resultado
+  // mesmo com a permissão correta (já corrigimos a causa raiz das
+  // policies, mas mantemos essa consulta separada aqui por ser mais
+  // simples e não depender de como o Postgrest resolve esse embed).
+  const patientActivityIds = activities.map((a) => a.id);
+  const { data: responsesData } =
+    patientActivityIds.length > 0
+      ? await supabase
+          .from("responses")
+          .select(
+            `id, patient_activity_id, text_response, submitted_at, is_draft,
+             response_files ( id, file_name, file_type, file_path, created_at )`
+          )
+          .in("patient_activity_id", patientActivityIds)
+      : { data: [] as any[] };
+
+  const responseByPatientActivity = new Map(
+    (responsesData ?? []).map((r: any) => [r.patient_activity_id, r])
+  );
+  for (const a of activities) {
+    a.response = responseByPatientActivity.get(a.id) ?? null;
+  }
+
   const pending = activities.filter((a) => a.status === "pending" || a.status === "in_progress");
-  const recentResponses = activities.filter((a) => a.responses?.[0]?.submitted_at).slice(0, 5);
-  const allFiles = activities.flatMap((a) => a.responses?.[0]?.response_files ?? []);
+  const recentResponses = activities.filter((a) => a.response?.submitted_at).slice(0, 5);
+  const allFiles = activities.flatMap((a) => a.response?.response_files ?? []);
 
   const profile = patient.profiles as any;
 
@@ -120,7 +145,7 @@ export default async function PacienteDetalhePage({
                         <li key={a.id} className="py-2 text-sm">
                           <p className="font-medium text-slate-800">{a.activities?.title}</p>
                           <p className="text-xs text-slate-400">
-                            Enviada em {formatDateTime(a.responses[0].submitted_at)}
+                            Enviada em {formatDateTime(a.response.submitted_at)}
                           </p>
                         </li>
                       ))}
@@ -163,7 +188,7 @@ export default async function PacienteDetalhePage({
                             </Badge>
                           </td>
                           <td className="px-4 py-3 max-w-xs truncate text-slate-500">
-                            {a.responses?.[0]?.text_response ?? "—"}
+                            {a.response?.text_response ?? "—"}
                           </td>
                         </tr>
                       ))}

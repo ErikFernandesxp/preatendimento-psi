@@ -29,13 +29,7 @@ export default async function PreAtendimentoDetalhePage({
   const [{ data: activities }, { data: points }] = await Promise.all([
     supabase
       .from("patient_activities")
-      .select(
-        `id, status, sent_at,
-         activities ( title ),
-         responses ( id, text_response, structured_response, is_draft, submitted_at,
-           response_flags ( flag ),
-           response_files ( id, file_name, file_path, file_type ) )`
-      )
+      .select(`id, status, sent_at, activities ( title )`)
       .eq("patient_id", id)
       .order("sent_at", { ascending: false })
       .limit(10),
@@ -48,15 +42,38 @@ export default async function PreAtendimentoDetalhePage({
 
   const rows = (activities ?? []) as any[];
 
-  // Antes, isso só considerava a resposta se `submitted_at` estivesse
-  // preenchido — então texto, resposta objetiva (structured_response) e
-  // arquivos anexados de uma resposta ainda em rascunho (ou que não
-  // completou o fluxo de "Confirmar envio") nunca apareciam aqui, mesmo
-  // o paciente já tendo escrito ou anexado algo. Agora mostramos
-  // qualquer resposta que já tenha algum conteúdo, e sinalizamos com o
-  // badge "Rascunho" quando ainda não foi formalmente enviada.
+  // Busca as respostas numa consulta à parte, em vez de um embed
+  // `patient_activities -> responses`: esse embed em específico faz o
+  // Postgrest reavaliar a RLS de patient_activities dentro da própria
+  // checagem de RLS de responses, e a linha some do resultado mesmo
+  // com a permissão certa. Uma consulta direta em `responses`
+  // (comprovadamente correta, ver 0008_fix_responses_rls_recursion.sql)
+  // não tem esse problema.
+  const patientActivityIds = rows.map((r) => r.id);
+  const { data: responsesData } =
+    patientActivityIds.length > 0
+      ? await supabase
+          .from("responses")
+          .select(
+            `id, patient_activity_id, text_response, structured_response, is_draft, submitted_at,
+             response_flags ( flag ),
+             response_files ( id, file_name, file_path, file_type )`
+          )
+          .in("patient_activity_id", patientActivityIds)
+      : { data: [] as any[] };
+
+  const responseByPatientActivity = new Map(
+    (responsesData ?? []).map((r: any) => [r.patient_activity_id, r])
+  );
+  for (const r of rows) {
+    r.response = responseByPatientActivity.get(r.id) ?? null;
+  }
+
+  // Mostra qualquer resposta que já tenha conteúdo (texto, resposta
+  // objetiva ou arquivo), mesmo que ainda esteja como rascunho — e
+  // sinaliza isso com o badge "Rascunho".
   const withResponses = rows.filter((r) => {
-    const resp = r.responses?.[0];
+    const resp = r.response;
     if (!resp) return false;
     const hasText = !!resp.text_response;
     const structuredText = formatStructuredValue(resp.structured_response?.value);
@@ -100,7 +117,7 @@ export default async function PreAtendimentoDetalhePage({
             ) : (
               <div className="space-y-3">
                 {withResponses.map((r) => {
-                  const response = r.responses[0];
+                  const response = r.response;
                   const structuredText = formatStructuredValue(response.structured_response?.value);
                   const files = response.response_files ?? [];
 
