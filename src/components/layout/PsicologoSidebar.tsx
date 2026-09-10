@@ -1,3 +1,5 @@
+// Caminho no projeto: src/components/layout/PsicologoSidebar.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -25,7 +27,7 @@ const links = [
 ];
 
 // A logo e o nome já aparecem na TopBar - a sidebar fica só com a
-// navegação, sempre branca, para não competir com a marca.
+// navegação, sempre neutra, para não competir com a marca.
 export function PsicologoSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -40,13 +42,13 @@ export function PsicologoSidebar({ open, onClose }: { open: boolean; onClose: ()
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out",
+        "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-stone-200 bg-white transition-transform duration-200 ease-out",
         "md:static md:z-auto md:h-auto md:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full"
       )}
     >
       <div className="flex justify-end px-3 pt-3 md:hidden">
-        <button onClick={onClose} aria-label="Fechar menu" className="text-slate-400">
+        <button onClick={onClose} aria-label="Fechar menu" className="text-stone-400">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -59,10 +61,10 @@ export function PsicologoSidebar({ open, onClose }: { open: boolean; onClose: ()
               href={href}
               onClick={onClose}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
                 active
-                  ? "bg-[var(--button-bg,#0f172a)] text-[var(--button-fg,#fff)]"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-[var(--button-bg,#EA5A45)] text-[var(--button-fg,#fff)] shadow-[var(--shadow-soft)]"
+                  : "text-stone-600 hover:bg-stone-100"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -74,7 +76,7 @@ export function PsicologoSidebar({ open, onClose }: { open: boolean; onClose: ()
       <div className="px-3 pb-5">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-stone-600 hover:bg-stone-100"
         >
           <LogOut className="h-4 w-4" />
           Sair

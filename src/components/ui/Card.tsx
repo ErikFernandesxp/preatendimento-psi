@@ -1,3 +1,5 @@
+// Caminho no projeto: src/components/ui/Card.tsx
+
 import { cn } from "@/lib/utils/cn";
 
 export function Card({
@@ -12,7 +14,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-slate-200 bg-[var(--section-bg,#fff)] p-5 shadow-sm",
+        "rounded-2xl border border-stone-200/80 bg-[var(--section-bg,#fff)] p-5 shadow-[var(--shadow-soft)]",
         className
       )}
       style={style}
@@ -33,9 +35,9 @@ export function StatCard({
 }) {
   return (
     <Card>
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-slate-900">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      <p className="text-sm font-medium text-stone-500">{label}</p>
+      <p className="mt-2 text-3xl font-bold tracking-tight text-stone-900">{value}</p>
+      {hint && <p className="mt-1 text-xs text-stone-400">{hint}</p>}
     </Card>
   );
 }

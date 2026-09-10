@@ -1,3 +1,5 @@
+// Caminho no projeto: src/components/layout/TopBar.tsx
+
 "use client";
 
 import { Menu } from "lucide-react";
@@ -12,11 +14,11 @@ export function TopBar({
   onMenuClick: () => void;
 }) {
   return (
-    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-black/5 bg-[var(--topbar-bg,#fff)] px-4 md:px-6">
+    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-stone-200/70 bg-[var(--topbar-bg,#fff)] px-4 md:px-6">
       <button
         onClick={onMenuClick}
         aria-label="Abrir menu"
-        className="text-[var(--topbar-fg,#0f172a)] md:hidden"
+        className="text-[var(--topbar-fg,#241f1a)] md:hidden"
       >
         <Menu className="h-6 w-6" />
       </button>
@@ -31,7 +33,7 @@ export function TopBar({
           className="h-9 w-auto max-w-[180px] object-contain"
         />
       ) : (
-        <p className="text-base font-semibold" style={{ color: "var(--topbar-fg, #0f172a)" }}>
+        <p className="text-base font-bold" style={{ color: "var(--topbar-fg, #241f1a)" }}>
           {workspaceName ?? "Pré-Atendimento"}
         </p>
       )}

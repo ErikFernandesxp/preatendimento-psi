@@ -1,3 +1,5 @@
+// Caminho no projeto: src/components/layout/AppShell.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -8,7 +10,7 @@ import { themeCssVars, type ThemeSettings } from "@/lib/utils/theme";
 
 // Estrutura: barra superior de ponta a ponta (com a logo) e, abaixo
 // dela, sidebar + conteúdo lado a lado. Sidebar e conteúdo são sempre
-// brancos/neutros - só a barra superior e os botões recebem a cor
+// neutros - só a barra superior e os botões recebem a cor
 // personalizada, então uma escolha de cor forte nunca quebra a tela
 // inteira.
 export function AppShell({
@@ -45,7 +47,7 @@ export function AppShell({
           />
         )}
 
-        <main className="flex-1 overflow-y-auto bg-slate-50 px-4 py-6 sm:px-6 md:px-8 md:py-8">
+        <main className="flex-1 overflow-y-auto bg-[#FAF9F7] px-4 py-6 sm:px-6 md:px-8 md:py-8">
           {children}
         </main>
       </div>

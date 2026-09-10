@@ -1,3 +1,5 @@
+// Caminho no projeto: src/app/(psicologo)/psicologo/dashboard/page.tsx
+
 import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/ui/Card";
 import { Badge, statusTone } from "@/components/ui/Badge";
@@ -35,8 +37,7 @@ export default async function DashboardPage() {
         .select(
           `id, status, sent_at, due_date,
            activities ( title ),
-           patients ( id, profiles ( name ) ),
-           responses ( submitted_at )`
+           patients ( id, profiles ( name ) )`
         )
         .order("sent_at", { ascending: false })
         .limit(8),
@@ -49,8 +50,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500">Visão geral do seu atendimento.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-stone-900">Dashboard</h1>
+        <p className="text-sm text-stone-500">Visão geral do seu atendimento.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -62,7 +63,7 @@ export default async function DashboardPage() {
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Atividades recentes</h2>
+          <h2 className="text-lg font-bold text-stone-900">Atividades recentes</h2>
           <LinkButton href="/psicologo/atividades/nova" variant="secondary">
             + Nova atividade
           </LinkButton>
@@ -77,9 +78,9 @@ export default async function DashboardPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-2xl border border-stone-200/80 bg-white shadow-[var(--shadow-soft)]">
             <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="bg-stone-50/80 text-xs font-semibold uppercase tracking-wide text-stone-500">
                 <tr>
                   <th className="px-4 py-3">Paciente</th>
                   <th className="px-4 py-3">Atividade</th>
@@ -89,26 +90,26 @@ export default async function DashboardPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-stone-100">
                 {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-4 py-3 font-medium text-slate-900">
+                  <tr key={row.id} className="transition-colors hover:bg-stone-50/60">
+                    <td className="px-4 py-3.5 font-semibold text-stone-900">
                       {row.patients?.profiles?.name ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{row.activities?.title ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-500">{formatDate(row.sent_at)}</td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3.5 text-stone-600">{row.activities?.title ?? "—"}</td>
+                    <td className="px-4 py-3.5 text-stone-500">{formatDate(row.sent_at)}</td>
+                    <td className="px-4 py-3.5 text-stone-500">
                       {row.due_date ? formatDate(row.due_date) : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <Badge tone={statusTone(row.status)}>
                         {patientActivityStatusLabel[row.status] ?? row.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3.5 text-right">
                       <Link
                         href={`/psicologo/pacientes/${row.patients?.id}`}
-                        className="text-sm font-medium text-slate-900 hover:underline"
+                        className="text-sm font-semibold text-[#EA5A45] hover:brightness-90"
                       >
                         Ver
                       </Link>

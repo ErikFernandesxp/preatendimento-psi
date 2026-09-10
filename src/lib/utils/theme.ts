@@ -13,7 +13,7 @@ export interface ThemeSettings {
 export const DEFAULT_THEME: Required<ThemeSettings> = {
   topbar_bg: "#ffffff",
   section_bg: "#ffffff",
-  button_bg: "#0f172a",
+  button_bg: "#EA5A45",
 };
 
 /**
